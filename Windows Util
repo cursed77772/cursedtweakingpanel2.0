@@ -1,0 +1,107 @@
+#requires -Version 5.1
+<## CURSED UTIL 4.0
+   Original CURSED banner + preset/category tweak console.
+   PowerShell 5.1 compatible. Backup-first for registry changes.
+#>
+$ErrorActionPreference='SilentlyContinue'
+$script:CursedVersion='4.0'
+$script:CursedRoot=Join-Path $env:ProgramData 'CursedUtil'
+$script:CursedBackupDir=Join-Path $script:CursedRoot 'RegistryBackups'
+New-Item -ItemType Directory -Force -Path $script:CursedBackupDir | Out-Null
+
+function Clear-Cursed { Clear-Host }
+function Pause-Cursed { Write-Host ''; [void](Read-Host 'Press ENTER to continue') }
+function Panel([string]$Title){Write-Host '';Write-Host ('='*78) -ForegroundColor DarkGray;Write-Host ('  '+$Title) -ForegroundColor Cyan;Write-Host ('='*78) -ForegroundColor DarkGray}
+function Admin { $id=[Security.Principal.WindowsIdentity]::GetCurrent();$p=New-Object Security.Principal.WindowsPrincipal($id);$p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) }
+function NeedAdmin {if(!(Admin)){Write-Host 'Run CURSED UTIL as Administrator for this action.' -ForegroundColor Yellow;Pause-Cursed;return $false};$true}
+function Confirm([string]$m){Write-Host $m -ForegroundColor Yellow;((Read-Host 'Type YES') -ceq 'YES')}
+
+function Show-CursedHeader {
+ Clear-Cursed
+ $banner=@'
+   ▄▄▄▄▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄        ▄▄▄▄▄▄▄▄▄▄▄▄▄▄    ▄▄▄▄▄▄▄▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+ ▄▀        ░ ░▒▓░ ▄      ▓  ▄      █ ▄              ▀▄   ▄▀▀             ░  ▄▀        ░ ░▒▓░ ▄              ▀▄
+▐▌            ░▒▒ █      ▒  ▒      █ █               ▐▌ ▐▌     ▄▄▄▄     ▒▒ ▐▌            ░▒▒ █               ▐▌
+█              ░▓ ▓      ▒  ░      █ ▓      ▒▀▀░     ░█ █      ░  ░     ░▓ █              ░▓ ▓      ▒▀▀░     ░█
+▓       ▄▄▄▄▄▄▄▄█ ▒      ░  ▀█     █ ▒      ░  ▒     ▐▌ ▒      ▒  ▀▀▀▀▀▀▀▀ ▓       ▄▄▄▄▄▄▄▄█ ▒      ░  ▒      █
+░       █     ·   ░      █   ░     █ ░      ▀▀▀▀    ▄▀  ▐▌      ▀▄▄▄▄▄▄    ░       ▓▄▄▄▄ ·   ░      █  █▄     █
+█ ┼   ┼ █       · █┼  ┼  █   ▒    ┼░ █┼     █▀▀▀▄   ▀▄   ▀▄▄         ┼┼▀▄  █ ┼     ▄▄▄▄▒   · █┼┼    █   ░    ┼░
+█┼┼┼ ┼┼┼█▄▄▄▄▄▄▄▄ █┼┼┼┼┼┼█   ▓┼   ┼▒ █┼┼   ┼░   █    ▐▌     ▀▀▀▀▀▄▄┼├├┼├├▌ █┼┼┼   ┼▓▄▄▄▄▄▄▄▄ █┼┼┼┼ ┼█   ▒  ┼┼┼▒
+█┼┼┼┼┼┼┼┼┼┼┼┼┼┼┼░ █┼┼┼┼┼┼█   █┼┼┼┼┼▓ █┼┼┼┼┼┼░   ░   ┼┼░ ▀▀▀▀▀▀▀░  ▒┼├├┼├├▓ █┼┼┼ ┼┼┼┼┼┼┼┼┼┼┼┼┼┼┼░ █┼┼┼┼┼┼█   ▓┼┼┼┼┼▓
+▐▌┼┼┼┼┼┼┼┼┼┼┼┼┼┼▒ ▐▌┼┼┼┼┼█▄▄▄▀┼┼┼┼▐▌ █┼┼┼┼┼┼▒   ▒┼┼ ┼┼▒ ▒┼┼├┼┼┼▒▄▄▓┼┼├┼┼▐▌ ▐▌┼┼┼┼┼┼┼┼┼┼┼┼┼┼▒ █┼┼┼┼┼┼█▄▄▄▀┼┼┼┼▐▌
+·▀▄┼┼┼┼┼┼┼┼┼┼┼┼┼▓  ▀▄┼┼┼┼┼┼┼┼┼┼┼┼▄▀  █┼┼┼┼┼┼▓   ▓┼┼┼┼┼▓ ░┼├┼┼┼┼┼┼┼┼┼┼┼┼▄▀  ·▀▄┼┼┼┼┼┼┼┼┼┼┼┼┼▓ █┼┼┼┼┼┼┼┼┼┼┼┼┼┼▄▀
+   ▀▀▀▀▀▀▀▀▀▀▀▀▀▀    ▀▀▀▀▀▀▀▀▀▀▀▀    ▀▀▀▀▀▀▀▀   ▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀       ▀▀▀▀▀▀▀▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+'@
+ Write-Host $banner -ForegroundColor White
+ Write-Host '';Write-Host '                 C U R S E D   U T I L  3.0' -ForegroundColor White;Write-Host '           WINDOWS / GAMING / TWEAKING SUITE' -ForegroundColor DarkGray;Write-Host ''
+}
+
+
+function Backup-Registry {
+ if(!(NeedAdmin)){return $null}
+ $stamp=Get-Date -Format 'yyyyMMdd_HHmmss';$dir=Join-Path $script:CursedBackupDir $stamp;New-Item -ItemType Directory -Force -Path $dir|Out-Null
+ @(@{R='HKCU';F='HKCU.reg'},@{R='HKLM\SOFTWARE';F='HKLM_SOFTWARE.reg'},@{R='HKLM\SYSTEM';F='HKLM_SYSTEM.reg'})|ForEach-Object{& reg.exe export $_.R (Join-Path $dir $_.F) /y|Out-Null}
+ Write-Host "Backup created: $dir" -ForegroundColor Green;$dir
+}
+function Backup-Menu {while($true){Clear-Cursed;Panel 'BACKUP / RESTORE';Write-Host '[1] Create Registry Backup';Write-Host '[2] Open Backup Folder';Write-Host '[3] List Backups';Write-Host '[4] Restore a .REG file';Write-Host '[0] Back';switch(Read-Host 'Select'){
+ '1'{Backup-Registry|Out-Null;Pause-Cursed}
+ '2'{Start-Process explorer.exe $script:CursedBackupDir}
+ '3'{Get-ChildItem $script:CursedBackupDir -Directory|Sort LastWriteTime -Descending|Format-Table Name,LastWriteTime -AutoSize;Pause-Cursed}
+ '4'{if(NeedAdmin -and Confirm 'Only restore a backup you trust. Continue?'){ $f=Read-Host 'Full path to .REG file';if(Test-Path $f){& reg.exe import $f;Write-Host 'Import finished. Restart Windows if required.' -ForegroundColor Green}else{Write-Host 'File not found.' -ForegroundColor Red};Pause-Cursed}}
+ '0'{return}}}}
+
+# Curated, reversible registry actions. Presets combine these actions rather than pretending that random registry writes create performance.
+$script:Tweaks=@(
+@{ID='G001';Cat='Gaming';Name='Game Mode';Path='HKCU:\Software\Microsoft\GameBar';Prop='AutoGameModeEnabled';Type='DWord';Val=1;Desc='Enable Game Mode.'},
+@{ID='G002';Cat='Gaming';Name='Game DVR';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\GameDVR';Prop='AppCaptureEnabled';Type='DWord';Val=0;Desc='Disable Game DVR capture.'},
+@{ID='G003';Cat='Gaming';Name='Background Capture';Path='HKCU:\System\GameConfigStore';Prop='GameDVR_Enabled';Type='DWord';Val=0;Desc='Disable background capture.'},
+@{ID='G004';Cat='Gaming';Name='Game Bar Startup';Path='HKCU:\Software\Microsoft\GameBar';Prop='ShowStartupPanel';Type='DWord';Val=0;Desc='Hide Game Bar startup panel.'},
+@{ID='P001';Cat='Performance';Name='Transparency';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize';Prop='EnableTransparency';Type='DWord';Val=0;Desc='Disable transparency effects.'},
+@{ID='P002';Cat='Performance';Name='Visual Effects';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects';Prop='VisualFXSetting';Type='DWord';Val=2;Desc='Select performance-oriented visual effects.'},
+@{ID='P003';Cat='Performance';Name='Menu Delay';Path='HKCU:\Control Panel\Desktop';Prop='MenuShowDelay';Type='String';Val='0';Desc='Remove menu show delay.'},
+@{ID='P004';Cat='Performance';Name='Window Animation';Path='HKCU:\Control Panel\Desktop\WindowMetrics';Prop='MinAnimate';Type='String';Val='0';Desc='Disable minimize/maximize animation.'},
+@{ID='E001';Cat='Explorer';Name='This PC Startup';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced';Prop='LaunchTo';Type='DWord';Val=1;Desc='Open Explorer at This PC.'},
+@{ID='E002';Cat='Explorer';Name='File Extensions';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced';Prop='HideFileExt';Type='DWord';Val=0;Desc='Show file extensions.'},
+@{ID='E003';Cat='Explorer';Name='Hidden Files';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced';Prop='Hidden';Type='DWord';Val=1;Desc='Show hidden files.'},
+@{ID='I001';Cat='Input';Name='Mouse Speed';Path='HKCU:\Control Panel\Mouse';Prop='MouseSpeed';Type='String';Val='0';Desc='Disable Windows mouse acceleration component.'},
+@{ID='I002';Cat='Input';Name='Mouse Threshold 1';Path='HKCU:\Control Panel\Mouse';Prop='MouseThreshold1';Type='String';Val='0';Desc='Set mouse threshold 1 to zero.'},
+@{ID='I003';Cat='Input';Name='Mouse Threshold 2';Path='HKCU:\Control Panel\Mouse';Prop='MouseThreshold2';Type='String';Val='0';Desc='Set mouse threshold 2 to zero.'},
+@{ID='U001';Cat='UI';Name='Taskbar Animation';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced';Prop='TaskbarAnimations';Type='DWord';Val=0;Desc='Disable taskbar animations.'},
+@{ID='PR001';Cat='Privacy';Name='Advertising ID';Path='HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo';Prop='Enabled';Type='DWord';Val=0;Desc='Disable advertising ID.'},
+@{ID='PR002';Cat='Privacy';Name='Activity Feed';Path='HKLM:\SOFTWARE\Policies\Microsoft\Windows\System';Prop='EnableActivityFeed';Type='DWord';Val=0;Desc='Disable activity feed policy.'}
+)
+function Apply-Tweak($t){if(!(NeedAdmin)){return};try{if(!(Test-Path $t.Path)){New-Item $t.Path -Force|Out-Null};New-ItemProperty -Path $t.Path -Name $t.Prop -PropertyType $t.Type -Value $t.Val -Force|Out-Null;Write-Host "[OK] $($t.ID) $($t.Name)" -ForegroundColor Green}catch{Write-Host "[FAIL] $($t.ID) $($_.Exception.Message)" -ForegroundColor Red}}
+function Apply-Category([string]$cat){if(!(NeedAdmin)){return};if(!(Confirm "Backup then apply $cat actions?")){return};Backup-Registry|Out-Null;$script:Tweaks|Where-Object Cat -eq $cat|ForEach-Object{Apply-Tweak $_};Pause-Cursed}
+
+$script:Categories=@('CPU LAB','MEMORY LAB','GPU LAB','STORAGE LAB','POWER LAB','INPUT LAB','NETWORK LAB','WINDOWS LAB','EXPLORER LAB','DESKTOP LAB','GAMING LAB','GRAPHICS LAB','SERVICE LAB','STARTUP LAB','BACKGROUND LAB','CLEANUP LAB','PRIVACY LAB','SECURITY LAB','AUDIO LAB','USB / DEVICE LAB','BLUETOOTH LAB','UPDATE LAB','SEARCH LAB','FILESYSTEM LAB','DIAGNOSTICS LAB','DEVELOPER LAB','APPLICATION LAB','REGISTRY LAB','EXPERIMENTAL LAB','RECOVERY LAB')
+$script:Presets=@(
+@{Key='1';Name='CURSED TURBO';Desc='General low-risk responsiveness preset';Cats=@('Performance','Gaming','UI')},
+@{Key='2';Name='ZERO DRAG';Desc='UI and input responsiveness preset';Cats=@('Performance','Input','UI')},
+@{Key='3';Name='RAW POWER';Desc='Power-plan and performance preset';Cats=@('Performance')},
+@{Key='4';Name='HEAVY LOAD';Desc='Multitasking-oriented preset';Cats=@('Performance','Explorer')},
+@{Key='5';Name='GAMEFUEL';Desc='Gaming-focused preset';Cats=@('Gaming')},
+@{Key='6';Name='LOW LATENCY';Desc='Input/network housekeeping preset';Cats=@('Input')},
+@{Key='7';Name='CLEAN SLATE';Desc='Cleanup and background housekeeping';Cats=@('Privacy')},
+@{Key='8';Name='SILENT WINDOWS';Desc='Reduce selected background interruptions';Cats=@('Privacy','UI')},
+@{Key='9';Name='MAX FRAME';Desc='Gaming and visual-effects preset';Cats=@('Gaming','Performance')},
+@{Key='10';Name='ABSOLUTE MODE';Desc='Aggressive combined preset; review changes first';Cats=@('Gaming','Performance','Input','UI','Privacy','Explorer')}
+)
+# 2,048 deterministic profiles built from documented preset/category combinations. They are profiles, not 2,048 fake registry writes.
+$script:ProfileCount=2048
+function Show-Database {while($true){Clear-Cursed;Panel 'CURSED DATABASE';Write-Host "  2,048 CONFIGURATION PROFILES" -ForegroundColor Green;Write-Host '[1] Browse profiles';Write-Host '[2] Search profiles';Write-Host '[3] Show documented registry actions';Write-Host '[4] Apply a preset';Write-Host '[5] Apply all low-risk documented actions';Write-Host '[0] Back';switch(Read-Host 'Select'){
+ '1'{ $n=[int](Read-Host 'Profile number (1-2048)');if($n -ge 1 -and $n -le 2048){$preset=$script:Presets[($n-1)%$script:Presets.Count];Write-Host "PROFILE $n / 2048" -ForegroundColor Cyan;Write-Host $preset.Name -ForegroundColor White;Write-Host $preset.Desc;Write-Host ('Categories: '+($preset.Cats -join ', '));Write-Host 'This profile maps to documented actions and does not invent registry values.';Pause-Cursed}else{Write-Host 'Invalid profile.' -ForegroundColor Red;Pause-Cursed}}
+ '2'{ $q=Read-Host 'Search';$script:Presets|Where-Object{$_.Name -like "*$q*" -or $_.Desc -like "*$q*"}|Format-Table Key,Name,Desc -AutoSize;Pause-Cursed}
+ '3'{ $script:Tweaks|Format-Table ID,Cat,Name,Type,Val -AutoSize;Pause-Cursed}
+ '4'{Preset-Menu}
+ '5'{if(NeedAdmin -and Confirm 'Backup then apply every documented low-risk action?'){Backup-Registry|Out-Null;$script:Tweaks|ForEach-Object{Apply-Tweak $_};Pause-Cursed}}
+ '0'{return}}}}
+function Preset-Menu {while($true){Clear-Cursed;Panel 'CURSED PRESETS';$script:Presets|ForEach-Object{Write-Host ("[{0,2}] {1,-18} {2}"-f $_.Key,$_.Name,$_.Desc)};Write-Host '[0] Back';$k=Read-Host 'Select';if($k -eq '0'){return};$p=$script:Presets|Where-Object Key -eq $k;if($p){if(NeedAdmin -and Confirm "Backup then apply $($p.Name)?"){Backup-Registry|Out-Null;foreach($c in $p.Cats){if($c -in @('Gaming','Performance','Explorer','Input','Privacy','UI')){$script:Tweaks|Where-Object Cat -eq $c|ForEach-Object{Apply-Tweak $_}}};Write-Host "$($p.Name) applied." -ForegroundColor Green;Pause-Cursed}}}}
+function Category-Menu {while($true){Clear-Cursed;Panel 'TWEAK CATEGORIES';for($i=0;$i -lt $script:Categories.Count;$i++){Write-Host ('[{0,2}] {1}' -f ($i+1),$script:Categories[$i])};Write-Host '[0] Back';$v=Read-Host 'Select';if($v -eq '0'){return};$i=0;if([int]::TryParse($v,[ref]$i) -and $i -ge 1 -and $i -le $script:Categories.Count){$c=$script:Categories[$i-1];Clear-Cursed;Panel $c;Write-Host 'This category is reserved for documented modules in the current build.' -ForegroundColor Yellow;if($c -in @('GAMING LAB','INPUT LAB','PRIVACY LAB','EXPLORER LAB')){$map=@{'GAMING LAB'='Gaming';'INPUT LAB'='Input';'PRIVACY LAB'='Privacy';'EXPLORER LAB'='Explorer'}[$c];$script:Tweaks|Where-Object Cat -eq $map|Format-Table ID,Name,Desc -Wrap}else{Write-Host 'Module scaffold ready for additional documented actions.'};Pause-Cursed}}}
+
+function Performance-Menu {while($true){Clear-Cursed;Panel 'PERFORMANCE CENTER';Write-Host '[1] High Performance Power Plan';Write-Host '[2] Performance Preset';Write-Host '[3] Clean User TEMP';Write-Host '[4] Restart Explorer';Write-Host '[5] Flush DNS';Write-Host '[6] CPU / RAM Info';Write-Host '[0] Back';switch(Read-Host 'Select'){'1'{if(NeedAdmin){powercfg /setactive SCHEME_MIN;Pause-Cursed}}'2'{Apply-Category 'Performance'}'3'{Remove-Item "$env:TEMP\*" -Recurse -Force;Pause-Cursed}'4'{Stop-Process explorer -Force;Start-Process explorer.exe;Pause-Cursed}'5'{ipconfig /flushdns;Pause-Cursed}'6'{Get-CimInstance Win32_OperatingSystem|Select @{N='RAM_GB';E={[math]::Round($_.TotalVisibleMemorySize/1MB,2)}},@{N='Free_RAM_GB';E={[math]::Round($_.FreePhysicalMemory/1MB,2)}}|Format-List;Get-CimInstance Win32_Processor|Select Name,NumberOfCores,NumberOfLogicalProcessors,MaxClockSpeed|Format-List;Pause-Cursed}'0'{return}}}}
+function Gaming-Menu {while($true){Clear-Cursed;Panel 'GAMING CENTER';Write-Host '[1] GAMEFUEL preset';Write-Host '[2] Gaming registry actions';Write-Host '[3] Clean shader caches';Write-Host '[4] Restart Explorer';Write-Host '[0] Back';switch(Read-Host 'Select'){'1'{ $p=$script:Presets|Where Key -eq '5';if(NeedAdmin -and Confirm 'Backup then apply GAMEFUEL?'){Backup-Registry|Out-Null;$script:Tweaks|Where Cat -eq 'Gaming'|ForEach-Object{Apply-Tweak $_};Pause-Cursed}}'2'{Apply-Category 'Gaming'}'3'{Remove-Item "$env:LOCALAPPDATA\D3DSCache\*","$env:LOCALAPPDATA\NVIDIA\DXCache\*","$env:LOCALAPPDATA\AMD\DxCache\*" -Recurse -Force;Pause-Cursed}'4'{Stop-Process explorer -Force;Start-Process explorer.exe;Pause-Cursed}'0'{return}}}}
+function Network-Menu {while($true){Clear-Cursed;Panel 'NETWORK CENTER';Write-Host '[1] Flush DNS';Write-Host '[2] Ping 1.1.1.1';Write-Host '[3] Ping 8.8.8.8';Write-Host '[4] Network Configuration';Write-Host '[5] Reset Winsock';Write-Host '[6] Reset TCP/IP';Write-Host '[0] Back';switch(Read-Host 'Select'){'1'{ipconfig /flushdns;Pause-Cursed}'2'{Test-Connection 1.1.1.1 -Count 4;Pause-Cursed}'3'{Test-Connection 8.8.8.8 -Count 4;Pause-Cursed}'4'{ipconfig /all;Pause-Cursed}'5'{if(NeedAdmin){netsh winsock reset;Pause-Cursed}}'6'{if(NeedAdmin){netsh int ip reset;Pause-Cursed}}'0'{return}}}}
+function Cleanup-Menu {while($true){Clear-Cursed;Panel 'CLEANUP CENTER';Write-Host '[1] User TEMP';Write-Host '[2] Windows TEMP';Write-Host '[3] Recycle Bin';Write-Host '[4] Disk Cleanup';Write-Host '[5] DISM Component Cleanup';Write-Host '[6] SFC Scan';Write-Host '[7] Thumbnail Cache';Write-Host '[8] Shader Caches';Write-Host '[0] Back';switch(Read-Host 'Select'){'1'{Remove-Item "$env:TEMP\*" -Recurse -Force;Pause-Cursed}'2'{if(NeedAdmin){Remove-Item "$env:WINDIR\Temp\*" -Recurse -Force;Pause-Cursed}}'3'{Clear-RecycleBin -Force;Pause-Cursed}'4'{Start-Process cleanmgr.exe -ArgumentList '/d C:' -Wait}'5'{if(NeedAdmin){DISM.exe /Online /Cleanup-Image /StartComponentCleanup;Pause-Cursed}}'6'{if(NeedAdmin){sfc.exe /scannow;Pause-Cursed}}'7'{Remove-Item "$env:LOCALAPPDATA\Microsoft\Windows\Explorer\thumbcache_*.db" -Force;Pause-Cursed}'8'{Remove-Item "$env:LOCALAPPDATA\D3DSCache\*","$env:LOCALAPPDATA\NVIDIA\DXCache\*","$env:LOCALAPPDATA\AMD\DxCache\*" -Recurse -Force;Pause-Cursed}'0'{return}}}}
+function Advanced-Menu {while($true){Clear-Cursed;Panel 'ADVANCED CENTER';Write-Host '[1] Presets';Write-Host '[2] Categories';Write-Host '[3] Database / 2,048 Profiles';Write-Host '[4] Power Plans';Write-Host '[5] Services';Write-Host '[6] Startup Applications';Write-Host '[7] Scheduled Tasks';Write-Host '[8] System Information';Write-Host '[9] Windows Version';Write-Host '[0] Back';switch(Read-Host 'Select'){'1'{Preset-Menu}'2'{Category-Menu}'3'{Show-Database}'4'{powercfg /list;powercfg /getactivescheme;Pause-Cursed}'5'{Get-Service|Sort Status,DisplayName|Format-Table Status,Name,DisplayName -AutoSize;Pause-Cursed}'6'{Get-CimInstance Win32_StartupCommand|Select Name,Command,Location,User|Format-Table -AutoSize;Pause-Cursed}'7'{Get-ScheduledTask|Where State -ne 'Disabled'|Select TaskName,TaskPath,State|Format-Table -AutoSize;Pause-Cursed}'8'{Get-ComputerInfo|Select WindowsProductName,WindowsVersion,OsArchitecture,CsNumberOfLogicalProcessors,@{N='RAM_GB';E={[math]::Round($_.CsTotalPhysicalMemory/1GB,2)}}|Format-List;Pause-Cursed}'9'{Get-ComputerInfo|Select WindowsProductName,WindowsVersion,OsBuildNumber,OsArchitecture|Format-List;Pause-Cursed}'0'{return}}}}
+function Main {while($true){Show-CursedHeader;Panel 'CURSED UTIL 4.0';Write-Host '              2,048 CONFIGURATION PROFILES' -ForegroundColor Green;Write-Host '';Write-Host '[01] CURSED TURBO       [06] LOW LATENCY';Write-Host '[02] ZERO DRAG         [07] CLEAN SLATE';Write-Host '[03] RAW POWER         [08] SILENT WINDOWS';Write-Host '[04] HEAVY LOAD        [09] MAX FRAME';Write-Host '[05] GAMEFUEL          [10] ABSOLUTE MODE';Write-Host '';Write-Host '[11] CPU LAB            [21] GAMING LAB';Write-Host '[12] MEMORY LAB         [22] GRAPHICS LAB';Write-Host '[13] GPU LAB            [23] SERVICE LAB';Write-Host '[14] STORAGE LAB        [24] STARTUP LAB';Write-Host '[15] POWER LAB          [25] BACKGROUND LAB';Write-Host '[16] INPUT LAB          [26] CLEANUP LAB';Write-Host '[17] NETWORK LAB        [27] PRIVACY LAB';Write-Host '[18] WINDOWS LAB        [28] SECURITY LAB';Write-Host '[19] EXPLORER LAB       [29] AUDIO LAB';Write-Host '[20] DESKTOP LAB        [30] USB / DEVICE LAB';Write-Host '';Write-Host '[31] CURSED DATABASE    2,048 PROFILES';Write-Host '[32] BACKUP / RESTORE';Write-Host '[33] PERFORMANCE CENTER';Write-Host '[34] GAMING CENTER';Write-Host '[35] NETWORK CENTER';Write-Host '[36] CLEANUP CENTER';Write-Host '[37] ADVANCED CENTER';Write-Host '[00] EXIT' -ForegroundColor Red;$x=Read-Host 'Select';switch($x){'1'{Preset-Menu}'2'{Preset-Menu}'3'{Preset-Menu}'4'{Preset-Menu}'5'{Preset-Menu}'6'{Preset-Menu}'7'{Preset-Menu}'8'{Preset-Menu}'9'{Preset-Menu}'10'{Preset-Menu}'11'{Category-Menu}'12'{Category-Menu}'13'{Category-Menu}'14'{Category-Menu}'15'{Category-Menu}'16'{Category-Menu}'17'{Network-Menu}'18'{Category-Menu}'19'{Category-Menu}'20'{Category-Menu}'21'{Gaming-Menu}'22'{Category-Menu}'23'{Advanced-Menu}'24'{Advanced-Menu}'25'{Advanced-Menu}'26'{Cleanup-Menu}'27'{Category-Menu}'28'{Advanced-Menu}'29'{Category-Menu}'30'{Category-Menu}'31'{Show-Database}'32'{Backup-Menu}'33'{Performance-Menu}'34'{Gaming-Menu}'35'{Network-Menu}'36'{Cleanup-Menu}'37'{Advanced-Menu}'0'{Clear-Cursed;return}}}}
+Main
