@@ -1,5 +1,5 @@
 #requires -Version 5.1
-<## CURSED UTIL 4.0
+<## CURSED UTIL 1.1
    Original CURSED banner + preset/category tweak console.
    PowerShell 5.1 compatible. Backup-first for registry changes.
 #>
